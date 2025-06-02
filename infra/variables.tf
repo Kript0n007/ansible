@@ -19,3 +19,9 @@ variable "public_key_path" {
   description = "Caminho da chave pública SSH"
   type        = string
 }
+
+variable "public_key" {
+  description = "Chave pública SSH"
+  type        = string
+}
+

@@ -29,7 +29,7 @@ jobs:
       - name: Terraform Apply
         id: tfapply
         working-directory: infra
-        env:  # 👈 Adiciona as credenciais aqui!
+        env: 
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
@@ -44,10 +44,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install ansible==${{ env.ANSIBLE_VERSION }} community.docker
 
-      - name: Save private key to file
+      - name: Save SSH public key to tfvars
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
+          echo 'public_key = "${{ secrets.SSH_PUBLIC_KEY }}"' > infra/public_key.auto.tfvars
 
       - name: Run Ansible Playbook
         working-directory: provision
