@@ -72,12 +72,10 @@ jobs:
       run: |
         terraform apply -auto-approve
         IP=$(terraform output -raw instance_public_ip)
-
-        # grava o arquivo de inventário sem espaços extras
         cat > ../provision/inventory.ini <<EOF
-      [app]
-      $IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem
-      EOF 
+[app]
+$IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem
+EOF
 
     # 7) Instala Ansible + collection community.docker
     - name: Setup Ansible
@@ -100,4 +98,3 @@ jobs:
       run: |
         ansible-playbook -vv -i inventory.ini playbook.yml \
                          --private-key ../private_key.pem
-
