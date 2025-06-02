@@ -1,0 +1,27 @@
+---
+- name: Configurar servidor e fazer deploy
+  hosts: app
+  become: true
+
+  tasks:
+    - name: Atualiza pacotes
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Instala Docker e Docker Compose
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Clona seu repositório (exemplo)
+      git:
+        repo: https://github.com/Kript0n007/ansible.git
+        dest: /opt/app
+
+    - name: Sobe aplicação com Docker Compose
+      shell: docker-compose up -d
+      args:
+        chdir: /opt/app

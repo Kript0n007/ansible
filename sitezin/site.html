@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu Site de Vídeos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #000;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    main {
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .video-card {
+      background-color: #222;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      transition: transform 0.2s;
+    }
+
+    .video-card:hover {
+      transform: scale(1.03);
+    }
+
+    .thumbnail {
+      background-color: #555;
+      width: 100%;
+      height: 140px;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: bold;
+    }
+
+    .duration {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <header>Galeria de Vídeos</header>
+  <main>
+    <div class="video-card">
+      <div class="thumbnail"></div>
+      <div class="title">Vídeo 1: Introdução</div>
+      <div class="duration">Duração: 3:45</div>
+    </div>
+    <div class="video-card">
+      <div class="thumbnail"></div>
+      <div class="title">Vídeo 2: Conceitos Básicos</div>
+      <div class="duration">Duração: 5:10</div>
+    </div>
+    <div class="video-card">
+      <div class="thumbnail"></div>
+      <div class="title">Vídeo 3: Layout Responsivo</div>
+      <div class="duration">Duração: 4:25</div>
+    </div>
+    <!-- Pode duplicar os blocos acima para mais vídeos -->
+  </main>
+</body>
+</html>
