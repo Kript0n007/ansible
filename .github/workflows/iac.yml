@@ -46,7 +46,8 @@ jobs:
       - name: Setup Ansible
         run: |
           python -m pip install --upgrade pip
-          pip install ansible==${{ env.ANSIBLE_VERSION }} community.docker
+          pip install ansible community.docker
+
 
       - name: Run Ansible Playbook
         working-directory: provision
