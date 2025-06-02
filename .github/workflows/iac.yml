@@ -8,6 +8,8 @@ on:
 env:
   TF_VERSION: "1.8.0"
   ANSIBLE_VERSION: "2.16.4"
+  AWS_DEFAULT_REGION: "us-east-1"
+  AWS_REGION: "us-east-1"  
 
 jobs:
   provision_deploy:
