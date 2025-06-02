@@ -14,11 +14,11 @@ provider "aws" {
 
 resource "aws_key_pair" "iac_key" {
   key_name   = "iac_key"
-  public_key = var.public_key
+  public_key = file(var.public_key_path)
 
   lifecycle {
-    prevent_destroy = true  # Evita que a key seja destruída sem querer
-    ignore_changes  = [public_key]  # Ignora alterações no conteúdo da chave pública
+    prevent_destroy = true
+    ignore_changes  = [public_key]
   }
 }
 
