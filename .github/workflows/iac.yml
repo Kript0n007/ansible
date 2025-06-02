@@ -29,8 +29,9 @@ jobs:
       - name: Terraform Init
         working-directory: infra
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
         run: terraform init
 
       - name: Importar Key Pair e Security Group se já existirem
@@ -38,37 +39,39 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION:            ${{ env.AWS_REGION }}            #  ← 2. garante região
+          AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
         run: |
           set -e
-
-          echo "Verificando chave SSH…"
-          if aws ec2 describe-key-pairs --key-names iac_key --region "$AWS_REGION" >/dev/null 2>&1; then
-            terraform import -allow-missing-config aws_key_pair.iac_key iac_key || true
+          echo "🔍  Verificando chave SSH…"
+          if aws ec2 describe-key-pairs --key-names iac_key >/dev/null 2>&1; then
+            terraform import aws_key_pair.iac_key iac_key
+          else
+            echo "   → KeyPair não existe; será criada pelo apply."
           fi
 
-          echo "Verificando Security Group…"
-          SG_ID=$(aws ec2 describe-security-groups            \
-                    --filters Name=group-name,Values=iac_sg   \
-                    --query 'SecurityGroups[0].GroupId'       \
-                    --output text                             \
-                    --region "$AWS_REGION" 2>/dev/null || true)
+          echo "🔍  Verificando Security Group…"
+          SG_ID=$(aws ec2 describe-security-groups \
+                    --filters Name=group-name,Values=iac_sg \
+                    --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || true)
 
-          if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
-            terraform import -allow-missing-config aws_security_group.iac_sg "$SG_ID" || true
+          if [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ]; then
+            terraform import aws_security_group.iac_sg "$SG_ID"
+          else
+            echo "   → SecurityGroup não existe; será criado pelo apply."
           fi
 
       - name: Terraform Apply
         id: tfapply
         working-directory: infra
-        env: 
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
         run: |
           terraform apply -auto-approve
           IP=$(terraform output -raw instance_public_ip)
           echo "VM_IP=$IP" >> $GITHUB_ENV
-          echo "[app]"                          >  ../provision/inventory.ini
+          echo "[app]" >  ../provision/inventory.ini
           echo "$IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem" >> ../provision/inventory.ini
 
       - name: Setup Ansible
