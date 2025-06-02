@@ -72,9 +72,11 @@ jobs:
         run: |
           terraform apply -auto-approve
           IP=$(terraform output -raw instance_public_ip)
-          echo "VM_IP=$IP" >> $GITHUB_ENV
-          echo "[app]" >  ../provision/inventory.ini
-          echo "$IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem" >> ../provision/inventory.ini
+
+          # grava o arquivo de inventário sem espaços extras
+          echo "[app]"                                    >  ../provision/inventory.ini
+          echo "$IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem" \
+                                                        >> ../provision/inventory.ini
 
       - name: Setup Ansible
         run: |
@@ -82,7 +84,10 @@ jobs:
           pip install ansible docker
           ansible-galaxy collection install community.docker
 
-
+      - name: Salvar chave privada em arquivo
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
 
       - name: Run Ansible Playbook
         working-directory: provision
