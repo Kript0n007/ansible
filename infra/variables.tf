@@ -15,11 +15,6 @@ variable "instance_type" {
   default     = "t2.micro"
 }
 
-variable "public_key_path" {
-  description = "Caminho da chave pública SSH"
-  type        = string
-}
-
 variable "public_key" {
   description = "Chave pública SSH para EC2"
   type        = string

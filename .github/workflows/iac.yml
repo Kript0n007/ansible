@@ -26,6 +26,7 @@ jobs:
         run: |
           echo 'public_key = "${{ secrets.SSH_PUBLIC_KEY }}"' > infra/public_key.auto.tfvars
 
+
       - name: Init + Importar Key Pair e Security Group se já existirem
         working-directory: infra
         env:
