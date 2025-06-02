@@ -5,4 +5,4 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./site.html:/usr/share/nginx/html/index.html
+      - ./sitezin/site.html:/usr/share/nginx/html/index.html
