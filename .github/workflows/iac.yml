@@ -26,6 +26,12 @@ jobs:
         run: |
           echo 'public_key = "${{ secrets.SSH_PUBLIC_KEY }}"' > infra/public_key.auto.tfvars
 
+      - name: Terraform Init
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform init
 
       - name: Importar Key Pair e Security Group se já existirem
         working-directory: infra
@@ -45,15 +51,6 @@ jobs:
           if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
             terraform import aws_security_group.iac_sg $SG_ID || true
           fi
-
-      - name: Terraform Init
-        working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform init
-
- 
 
       - name: Terraform Apply
         id: tfapply
