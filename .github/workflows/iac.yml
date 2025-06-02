@@ -30,6 +30,27 @@ jobs:
         working-directory: infra
         run: terraform init
 
+      - name: Importar Key Pair e SG se existirem
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          # Importa a key pair se já existir na AWS
+          if aws ec2 describe-key-pairs --key-names iac_key >/dev/null 2>&1; then
+            terraform import aws_key_pair.iac_key iac_key || true
+          fi
+
+          # Obtém o ID do SG se já existir
+          SG_ID=$(aws ec2 describe-security-groups --filters Name=group-name,Values=iac_sg \
+            --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || true)
+
+          # Importa o SG se encontrado
+          if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
+            terraform import aws_security_group.iac_sg $SG_ID || true
+          fi
+ 
+
       - name: Terraform Apply
         id: tfapply
         working-directory: infra
