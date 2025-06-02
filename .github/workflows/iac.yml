@@ -1,97 +1,103 @@
 name: IaC full pipeline
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   TF_VERSION: "1.8.0"
   ANSIBLE_VERSION: "2.16.4"
   AWS_DEFAULT_REGION: "us-east-1"
-  AWS_REGION: "us-east-1"  
 
 jobs:
   provision_deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    # 1) Código do repositório
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
+    # 2) Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Save SSH public key to tfvars
-        run: |
-          echo 'public_key = "${{ secrets.SSH_PUBLIC_KEY }}"' > infra/public_key.auto.tfvars
+    # 3) Grava a chave pública em tfvars
+    - name: Save SSH public key to tfvars
+      run: |
+        echo "public_key = \"${{ secrets.SSH_PUBLIC_KEY }}\"" \
+          > infra/public_key.auto.tfvars
 
-      - name: Terraform Init
-        working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
-        run: terraform init
+    # 4) terraform init
+    - name: Terraform Init
+      working-directory: infra
+      env:
+        AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
+      run: terraform init
 
-      - name: Importar Key Pair e Security Group se já existirem
-        working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
-        run: |
-          set -e
-          echo "🔍  Verificando chave SSH…"
-          if aws ec2 describe-key-pairs --key-names iac_key >/dev/null 2>&1; then
-            terraform import aws_key_pair.iac_key iac_key
-          else
-            echo "   → KeyPair não existe; será criada pelo apply."
-          fi
+    # 5) Importa recursos se já existirem
+    - name: Import KeyPair & SecurityGroup (idempotência)
+      working-directory: infra
+      env:
+        AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
+      run: |
+        set -e
+        echo "🔍  KeyPair..."
+        if aws ec2 describe-key-pairs --key-names iac_key >/dev/null 2>&1; then
+          terraform import aws_key_pair.iac_key iac_key || true
+        fi
+        echo "🔍  SecurityGroup..."
+        SG_ID=$(aws ec2 describe-security-groups \
+                  --filters Name=group-name,Values=iac_sg \
+                  --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || true)
+        if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
+          terraform import aws_security_group.iac_sg "$SG_ID" || true
+        fi
 
-          echo "🔍  Verificando Security Group…"
-          SG_ID=$(aws ec2 describe-security-groups \
-                    --filters Name=group-name,Values=iac_sg \
-                    --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || true)
+    # 6) terraform apply + inventory.ini
+    - name: Terraform Apply
+      id: tfapply
+      working-directory: infra
+      env:
+        AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
+      run: |
+        terraform apply -auto-approve
+        IP=$(terraform output -raw instance_public_ip)
 
-          if [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ]; then
-            terraform import aws_security_group.iac_sg "$SG_ID"
-          else
-            echo "   → SecurityGroup não existe; será criado pelo apply."
-          fi
+        # grava o arquivo de inventário sem espaços extras
+        cat > ../provision/inventory.ini <<EOF
+      [app]
+      $IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem
+      EOF 
 
-      - name: Terraform Apply
-        id: tfapply
-        working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
-        run: |
-          terraform apply -auto-approve
-          IP=$(terraform output -raw instance_public_ip)
+    # 7) Instala Ansible + collection community.docker
+    - name: Setup Ansible
+      run: |
+        python -m pip install --upgrade pip
+        pip install ansible~=${{ env.ANSIBLE_VERSION }} docker
+        ansible-galaxy collection install community.docker
 
-          # grava o arquivo de inventário sem espaços extras
-          echo "[app]"                                    >  ../provision/inventory.ini
-          echo "$IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem" \
-                                                        >> ../provision/inventory.ini
+    # 8) Salva a chave privada do SSH
+    - name: Save private key to file
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
 
-      - name: Setup Ansible
-        run: |
-          python -m pip install --upgrade pip
-          pip install ansible docker
-          ansible-galaxy collection install community.docker
+    # 9) Executa o playbook
+    - name: Run Ansible Playbook
+      working-directory: provision
+      env:
+        ANSIBLE_HOST_KEY_CHECKING: "False"
+      run: |
+        ansible-playbook -vv -i inventory.ini playbook.yml \
+                         --private-key ../private_key.pem
 
-      - name: Salvar chave privada em arquivo
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-
-      - name: Run Ansible Playbook
-        working-directory: provision
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
-        run: |
-          ansible-playbook -i inventory.ini playbook.yml --private-key ../private_key.pem
