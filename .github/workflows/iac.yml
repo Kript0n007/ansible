@@ -46,6 +46,12 @@ jobs:
             terraform import aws_security_group.iac_sg $SG_ID || true
           fi
 
+      - name: Terraform Init
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform init
 
  
 
