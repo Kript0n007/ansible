@@ -36,20 +36,26 @@ jobs:
       - name: Importar Key Pair e Security Group se já existirem
         working-directory: infra
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION:            ${{ env.AWS_REGION }}            #  ← 2. garante região
         run: |
-          echo "Verificando se chave SSH já existe..."
-          if aws ec2 describe-key-pairs --key-names iac_key >/dev/null 2>&1; then
-            terraform import aws_key_pair.iac_key iac_key || true
+          set -e
+
+          echo "Verificando chave SSH…"
+          if aws ec2 describe-key-pairs --key-names iac_key --region "$AWS_REGION" >/dev/null 2>&1; then
+            terraform import -allow-missing-config aws_key_pair.iac_key iac_key || true
           fi
 
-          echo "Verificando se SG já existe..."
-          SG_ID=$(aws ec2 describe-security-groups --filters Name=group-name,Values=iac_sg \
-            --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || true)
+          echo "Verificando Security Group…"
+          SG_ID=$(aws ec2 describe-security-groups            \
+                    --filters Name=group-name,Values=iac_sg   \
+                    --query 'SecurityGroups[0].GroupId'       \
+                    --output text                             \
+                    --region "$AWS_REGION" 2>/dev/null || true)
 
           if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
-            terraform import aws_security_group.iac_sg $SG_ID || true
+            terraform import -allow-missing-config aws_security_group.iac_sg "$SG_ID" || true
           fi
 
       - name: Terraform Apply
