@@ -27,14 +27,12 @@ jobs:
           echo 'public_key = "${{ secrets.SSH_PUBLIC_KEY }}"' > infra/public_key.auto.tfvars
 
 
-      - name: Init + Importar Key Pair e Security Group se já existirem
+      - name: Importar Key Pair e Security Group se já existirem
         working-directory: infra
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          terraform init
-
           echo "Verificando se chave SSH já existe..."
           if aws ec2 describe-key-pairs --key-names iac_key >/dev/null 2>&1; then
             terraform import aws_key_pair.iac_key iac_key || true
@@ -47,6 +45,7 @@ jobs:
           if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
             terraform import aws_security_group.iac_sg $SG_ID || true
           fi
+
 
  
 
