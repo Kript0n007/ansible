@@ -3,7 +3,6 @@ name: IaC full pipeline
 on:
   push:
     branches: 
-      - main
       - gui
   workflow_dispatch:
 
