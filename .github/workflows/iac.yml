@@ -2,7 +2,9 @@ name: IaC full pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+      - gui
   workflow_dispatch:
 
 env:
