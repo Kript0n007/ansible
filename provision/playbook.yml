@@ -13,7 +13,7 @@
       apt:
         name:
           - docker.io
-          - docker-compose
+          - docker-compose-plugin
         state: present
 
     - name: Clona seu repositório (exemplo)
@@ -29,7 +29,7 @@
       failed_when: not site_file.stat.exists or site_file.stat.isdir
 
     - name: Sobe aplicação com Docker Compose
-      community.docker.docker_compose:
+      community.docker.docker_compose_v2:
         project_src: /opt/app
         state: present
       register: docker_compose_result
