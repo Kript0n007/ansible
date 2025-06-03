@@ -7,7 +7,7 @@ on:
 
 env:
   TF_VERSION: "1.8.0"
-  ANSIBLE_VERSION: ">=2.6"  # Ajustado para uma versão compatível
+  ANSIBLE_VERSION: ">=2.6"
   AWS_DEFAULT_REGION: "us-east-1"
 
 jobs:
@@ -15,21 +15,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Código do repositório
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2) Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # 3) Grava a chave pública em tfvars
       - name: Save SSH public key to tfvars
         run: |
           echo "public_key = \"${{ secrets.SSH_PUBLIC_KEY }}\"" > infra/public_key.auto.tfvars
-      # 4) terraform init
+
       - name: Terraform Init
         working-directory: infra
         env:
@@ -38,7 +35,6 @@ jobs:
           AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
         run: terraform init
 
-      # 5) Importa recursos se já existirem
       - name: Import KeyPair & SecurityGroup (idempotência)
         working-directory: infra
         env:
@@ -58,7 +54,7 @@ jobs:
           if [ "$SG_ID" != "None" ] && [ -n "$SG_ID" ]; then
             terraform import aws_security_group.iac_sg "$SG_ID" || true
           fi
-      # 6) terraform apply + gera inventory.ini
+
       - name: Terraform Apply
         id: tfapply
         working-directory: infra
@@ -71,18 +67,18 @@ jobs:
           IP=$(terraform output -raw instance_public_ip)
           echo "[app]" > ../provision/inventory.ini
           echo "${IP} ansible_ssh_private_key_file=../private_key.pem ansible_ssh_user=ubuntu" >> ../provision/inventory.ini
-      # 7) Instala Ansible + collection community.docker
+
       - name: Setup Ansible
         run: |
           python -m pip install --upgrade pip
           pip install "ansible${{ env.ANSIBLE_VERSION }}" docker
           ansible-galaxy collection install community.docker
-      # 8) Salva a chave privada do SSH
+
       - name: Save private key to file
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
-      # 9) Executa o playbook
+
       - name: Run Ansible Playbook
         working-directory: provision
         env:
