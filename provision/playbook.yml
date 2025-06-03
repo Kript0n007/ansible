@@ -1,4 +1,4 @@
----
+
 - name: Configurar servidor e fazer deploy
   hosts: app
   become: true
@@ -16,12 +16,48 @@
           - docker-compose
         state: present
 
-    - name: Clona seu repositório (exemplo)
+    - name: Clona seu repositório
       git:
         repo: https://github.com/Kript0n007/ansible.git
         dest: /opt/app
+        version: main
+      register: git_clone
+
+    - name: Garantir que o diretório /opt/app exista
+      ansible.builtin.file:
+        path: /opt/app
+        state: directory
+        mode: '0755'
+
+    - name: Garantir que site.html exista
+      ansible.builtin.copy:
+        content: "<html><body><h1>Olá, Mundo!</h1></body></html>"
+        dest: /opt/app/site.html
+        mode: '0644'
+      when: git_clone.changed
+
+    - name: Definir permissões para /opt/app
+      ansible.builtin.file:
+        path: /opt/app
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+        recurse: yes
+
+    - name: Verificar se é necessário reiniciar
+      ansible.builtin.command: needrestart -k
+      register: needrestart
+      changed_when: false
+      failed_when: false
+
+    - name: Reiniciar se houver atualização de kernel pendente
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+      when: needrestart.rc != 0
 
     - name: Sobe aplicação com Docker Compose
-      shell: docker-compose up -d
-      args:
+      ansible.builtin.command:
+        cmd: docker compose up -d
         chdir: /opt/app
+      register: docker_compose
+      changed_when: docker_compose.rc == 0
