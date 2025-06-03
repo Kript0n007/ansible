@@ -20,8 +20,17 @@
       git:
         repo: https://github.com/Kript0n007/ansible.git
         dest: /opt/app
+        version: gui
+
+    - name: Verifica se site.html existe
+      stat:
+        path: /opt/app/site.html
+      register: site_file
+      failed_when: not site_file.stat.exists or site_file.stat.isdir
 
     - name: Sobe aplicação com Docker Compose
-      shell: docker-compose up -d
-      args:
-        chdir: /opt/app
+      community.docker.docker_compose:
+        project_src: /opt/app
+        state: present
+      register: docker_compose_result
+      failed_when: docker_compose_result.failed
