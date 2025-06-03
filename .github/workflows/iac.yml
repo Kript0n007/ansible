@@ -67,14 +67,14 @@ jobs:
       working-directory: infra
       env:
         AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-分组        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION:    ${{ env.AWS_DEFAULT_REGION }}
       run: |
         terraform apply -auto-approve
         IP=$(terraform output -raw instance_public_ip)
         cat > ../provision/inventory.ini <<-EOF
-          [app]
-          $IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem
+        [app]
+        $IP ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem
         EOF
 
     # 7) Instala Ansible + collection community.docker
