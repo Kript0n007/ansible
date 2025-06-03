@@ -57,7 +57,7 @@
 
     - name: Sobe aplicação com Docker Compose
       ansible.builtin.command:
-        cmd: docker compose up -d
+        cmd: docker-compose up -d
         chdir: /opt/app
       register: docker_compose
       changed_when: docker_compose.rc == 0
