@@ -2,8 +2,7 @@ name: IaC full pipeline
 
 on:
   push:
-    branches: 
-      - gui
+    branches: [ gui ]
   workflow_dispatch:
 
 env:
@@ -82,7 +81,7 @@ jobs:
     - name: Setup Ansible
       run: |
         python -m pip install --upgrade pip
-        pip install ansible~=${{ env.ANSIBLE_VERSION }} docker
+        pip install ansible-core~=${{ env.ANSIBLE_VERSION }} docker
         ansible-galaxy collection install community.docker
 
     # 8) Salva a chave privada do SSH
