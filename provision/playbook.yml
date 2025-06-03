@@ -24,7 +24,7 @@
 
     - name: Verifica se site.html existe
       stat:
-        path: /opt/app/site.html
+        path: /opt/app/sitezin/site.html
       register: site_file
       failed_when: not site_file.stat.exists or site_file.stat.isdir
 
