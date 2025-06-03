@@ -3,6 +3,10 @@ name: IaC full pipeline
 on:
   push:
     branches: [ gui ]
+  pull_request:
+    branches: [ gui ]
+    types:
+      - closed
   workflow_dispatch:
 
 env:
