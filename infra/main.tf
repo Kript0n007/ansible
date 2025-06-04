@@ -27,8 +27,8 @@ resource "aws_security_group" "iac_sg" {
   description = "Abrir SSH e porta da aplicacao"
 
   lifecycle {
-    prevent_destroy = true  # Evita que o SG seja destruído sem querer
-    ignore_changes  = [description]  # Evita erro caso descrição mude
+    prevent_destroy = true
+    ignore_changes  = [description]
   }
 
   ingress {
